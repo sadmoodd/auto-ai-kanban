@@ -2,6 +2,10 @@ from typing import List
 from models import Developer, Task
 from ortools.linear_solver import pywraplp
 from tests import create_simple_test_data
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
+logger = logging.getLogger(__name__)
 
 class Solver():
     def __init__(self):
@@ -9,7 +13,8 @@ class Solver():
         self.solver = pywraplp.Solver.CreateSolver('SCIP')
         
         
-    def optimize(self, developers: List[Developer], tasks: List[Task]):        
+    def optimize(self, developers: List[Developer], tasks: List[Task]): 
+        logger.info("Начало оптимизации...")       
         if not self.solver:
             return
         
@@ -76,9 +81,10 @@ class Solver():
                             "developer": dev.name,
                             "real_effort": round(task.effort / dev.efficiency, 2)
                         })
+            logger.info("Решение найдено успешно")
             return results
         else:
-            print("Решение не найдено.")
+            logger.error("Решение не найдено.")
             return []
                   
         

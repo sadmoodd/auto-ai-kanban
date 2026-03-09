@@ -1,7 +1,9 @@
 from models import *
+import requests
+
 
 def create_simple_test_data():
-    """3 задачи, 2 разработчика - проверка приоритетов и эффективности"""
+    """3 задачи, 3 разработчика - проверка приоритетов и эффективности"""
     
     # Разработчики
     devs = [
@@ -24,7 +26,7 @@ def create_simple_test_data():
             skills={"python", "sql"}
         ),
         Developer(
-            id=2,
+            id=3,
             name="Андрей (сеньор)",
             level = 3,
             efficiency=1.35,
@@ -70,7 +72,59 @@ def create_simple_test_data():
     
     return devs, tasks
 
-# Ожидаемый результат: 
-# Задача 1 (CRITICAL) → Анна (1.5 * 5/8 = 0.94)
-# Задача 2 (HIGH) → Анна (1.5 * 4/12 = 0.5) или Борис (0.7 * 4/12 = 0.23) → Анна лучше
-# Задача 3 (LOW) → Борис (0.7 * 1/4 = 0.175) - единственный вариант
+
+from tests import create_simple_test_data # Импортируем твою функцию с данными
+
+def test_api_optimization():
+    url = "http://127.0.0.1:5050/api/optimize"
+    
+    # 1. Получаем данные из твоих тестов
+    devs, tasks = create_simple_test_data()
+    
+    # 2. Подготавливаем данные в формате JSON (Pydantic ожидает именно такие ключи)
+    # Важно: превращаем Set в List, так как JSON не поддерживает множества
+    payload = {
+        "devs_in": [
+            {
+                "id": d.id,
+                "name": d.name,
+                "efficiency": d.efficiency,
+                "total_capacity": d.total_capacity,
+                "level": int(d.level),
+                "skills": list(d.skills)
+            } for d in devs
+        ],
+        "tasks_in": [
+            {
+                "id": t.id,
+                "title": t.title,
+                "priority": int(t.priority),
+                "effort": t.effort,
+                "complexity": int(t.complexity),
+                "required_skills": list(t.required_skills),
+                "dependencies": t.dependencies
+            } for t in tasks
+        ]
+    }
+
+    print(f"Отправка запроса на {url}...")
+    
+    try:
+        # 3. Посылаем POST запрос
+        response = requests.post(url, json=payload)
+        
+        # 4. Анализируем ответ
+        if response.status_code == 200:
+            print("Успех! Результат оптимизации:")
+            assignments = response.json()
+            print("RAW JSON", assignments)
+            for a in assignments:
+                print(f"  - Задача: {a['task_title']} -> Разработчик: {a['developer']} (Время: {a['real_effort']}ч)")
+        else:
+            print(f"Ошибка {response.status_code}: {response.text}")
+        
+    except requests.exceptions.ConnectionError:
+        print("Ошибка: Не удалось подключиться к серверу. Убедись, что main.py запущен!")
+
+if __name__ == "__main__":
+    test_api_optimization()
